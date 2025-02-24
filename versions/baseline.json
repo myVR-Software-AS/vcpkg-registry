@@ -21,6 +21,11 @@
             "baseline": "2025-02-21",
             "port-version": 0
         },
+        "openssl":
+        {
+            "baseline": "3.1.4",
+            "port-version": 0
+        },
         "plog":
         {
             "baseline": "1.1.10",
