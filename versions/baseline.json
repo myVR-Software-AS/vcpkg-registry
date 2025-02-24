@@ -1,0 +1,10 @@
+{
+    "default":
+    {
+        "vcpkg-cmake":
+        {
+            "baseline": "2023-05-04",
+            "port-version": 0
+        }
+    }
+}
