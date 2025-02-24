@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/myVR-Software-AS/vcpkg-registry/refs/heads/master/LICENSE
