@@ -16,6 +16,11 @@
             "baseline": "0.16.0",
             "port-version": 1
         },
+        "juice":
+        {
+            "baseline": "1.5.1",
+            "port-version": 0
+        },
         "myvr-vcpkg-cmake":
         {
             "baseline": "2025-02-21",

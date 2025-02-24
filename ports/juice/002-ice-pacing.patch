@@ -1,0 +1,137 @@
+diff --git a/src/agent.c b/src/agent.c
+index 77abe67..a476b9a 100644
+--- a/src/agent.c
++++ b/src/agent.c
+@@ -38,6 +38,16 @@
+ #define BUFFER_SIZE 4096
+ #define DEFAULT_MAX_RECORDS_COUNT 8
+ 
++// Replacement for STUN_PACING_TIME that was hardcoded. 
++// Will now try with 5ms if remote agrees, if remote does not understand what we are talking about it will default to 50ms
++// if remote wants a higher number that higher number will be used. This is according to the RFC standard.
++// TODO: Should not evaluate this all the time, figure out where to store the value
++int get_ice_pacing(juice_agent_t *agent)
++{
++	int pacing =agent->local.ice_pacing > agent->remote.ice_pacing ? agent->local.ice_pacing : agent->remote.ice_pacing;
++	return pacing;
++}
++
+ static char *alloc_string_copy(const char *orig, bool *alloc_failed) {
+ 	if (!orig)
+ 		return NULL;
+@@ -394,7 +404,7 @@ int agent_resolve_servers(juice_agent_t *agent) {
+ 					juice_random(entry->transaction_id, STUN_TRANSACTION_ID_SIZE);
+ 					++agent->entries_count;
+ 
+-					agent_arm_transmission(agent, entry, STUN_PACING_TIME * i);
++					agent_arm_transmission(agent, entry, get_ice_pacing(agent) * i);
+ 
+ 					++count;
+ 				}
+@@ -433,7 +443,7 @@ int agent_resolve_servers(juice_agent_t *agent) {
+ 				juice_random(entry->transaction_id, STUN_TRANSACTION_ID_SIZE);
+ 				++agent->entries_count;
+ 
+-				agent_arm_transmission(agent, entry, STUN_PACING_TIME * i);
++				agent_arm_transmission(agent, entry, get_ice_pacing(agent) * i);
+ 			}
+ 		} else {
+ 			JLOG_ERROR("STUN server address resolution failed");
+@@ -1395,7 +1405,7 @@ int agent_process_stun_binding(juice_agent_t *agent, const stun_message_t *msg,
+ 			JLOG_DEBUG("Triggered pair check");
+ 			pair->state = ICE_CANDIDATE_PAIR_STATE_PENDING;
+ 			entry->state = AGENT_STUN_ENTRY_STATE_PENDING;
+-			agent_arm_transmission(agent, entry, STUN_PACING_TIME);
++			agent_arm_transmission(agent, entry, get_ice_pacing(agent));
+ 		}
+ 		break;
+ 	}
+@@ -2418,8 +2428,8 @@ void agent_arm_transmission(juice_agent_t *agent, agent_stun_entry_t *entry, tim
+ 		if (other != entry) {
+ 			timestamp_t other_transmission = other->next_transmission;
+ 			timediff_t timediff = entry->next_transmission - other_transmission;
+-			if (other_transmission && abs((int)timediff) < STUN_PACING_TIME) {
+-				entry->next_transmission = other_transmission + STUN_PACING_TIME;
++			if (other_transmission && abs((int)timediff) < get_ice_pacing(agent)) {
++				entry->next_transmission = other_transmission + get_ice_pacing(agent);
+ 				other = agent->entries;
+ 				continue;
+ 			}
+diff --git a/src/agent.h b/src/agent.h
+index 179e998..bf27aa2 100644
+--- a/src/agent.h
++++ b/src/agent.h
+@@ -27,10 +27,6 @@
+ #define MAX_STUN_CHECK_RETRANSMISSION_COUNT 6  // exponential backoff, total 39500ms
+ #define MAX_STUN_SERVER_RETRANSMISSION_COUNT 5 // total 23500ms
+ 
+-// RFC 8445: ICE agents SHOULD use a default Ta value, 50 ms, but MAY use another value based on the
+-// characteristics of the associated data.
+-#define STUN_PACING_TIME 50 // msecs
+-
+ // RFC 8445: Agents SHOULD use a Tr value of 15 seconds. Agents MAY use a bigger value but MUST NOT
+ // use a value smaller than 15 seconds.
+ #define STUN_KEEPALIVE_PERIOD 15000 // msecs
+diff --git a/src/ice.c b/src/ice.c
+index 8961c1f..4a9b2ff 100644
+--- a/src/ice.c
++++ b/src/ice.c
+@@ -46,6 +46,11 @@ static int parse_sdp_line(const char *line, ice_description_t *description) {
+ 		description->ice_lite = true;
+ 		return 0;
+ 	}
++	if (match_prefix(line, "a=ice-pacing:", &arg)) {
++		sscanf(arg, "%d", &description->ice_pacing);
++		printf("Received ice pacing from server: %d\n", description->ice_pacing);
++		return 0;
++	}
+ 	if (match_prefix(line, "a=end-of-candidates", &arg)) {
+ 		description->finished = true;
+ 		return 0;
+@@ -103,6 +108,7 @@ int ice_parse_sdp(const char *sdp, ice_description_t *description) {
+ 	description->ice_lite = false;
+ 	description->candidates_count = 0;
+ 	description->finished = false;
++	description->ice_pacing = 50;
+ 
+ 	char buffer[BUFFER_SIZE];
+ 	size_t size = 0;
+@@ -153,6 +159,7 @@ int ice_create_local_description(ice_description_t *description) {
+ 	description->ice_lite = false;
+ 	description->candidates_count = 0;
+ 	description->finished = false;
++	description->ice_pacing = 5; // Will fall back to 50ms if remote does not support this
+ 	JLOG_DEBUG("Created local description: ufrag=\"%s\", pwd=\"%s\"", description->ice_ufrag,
+ 	           description->ice_pwd);
+ 	return 0;
+@@ -268,8 +275,8 @@ int ice_generate_sdp(const ice_description_t *description, char *buffer, size_t
+ 	for (int i = 0; i < description->candidates_count + 2; ++i) {
+ 		int ret;
+ 		if (i == 0) {
+-			ret = snprintf(begin, end - begin, "a=ice-ufrag:%s\r\na=ice-pwd:%s\r\n",
+-			               description->ice_ufrag, description->ice_pwd);
++			ret = snprintf(begin, end - begin, "a=ice-ufrag:%s\r\na=ice-pacing:%d\r\na=ice-pwd:%s\r\n",
++			               description->ice_ufrag, description->ice_pacing, description->ice_pwd);
+ 			if (description->ice_lite)
+ 				ret = snprintf(begin, end - begin, "a=ice-lite\r\n");
+ 
+@@ -298,6 +305,7 @@ int ice_generate_sdp(const ice_description_t *description, char *buffer, size_t
+ 		if (begin < end)
+ 			begin += ret >= end - begin ? end - begin - 1 : ret;
+ 	}
++	printf("SDP line: %s\r\n", buffer);
+ 	return len;
+ }
+ 
+diff --git a/src/ice.h b/src/ice.h
+index 86f1de3..4b29f2a 100644
+--- a/src/ice.h
++++ b/src/ice.h
+@@ -47,6 +47,7 @@ typedef struct ice_candidate {
+ typedef struct ice_description {
+ 	char ice_ufrag[256 + 1]; // 4 to 256 characters
+ 	char ice_pwd[256 + 1];   // 22 to 256 characters
++	int  ice_pacing; // Default 5ms but will try to negotiate, if remote does not answer it will fall back to the safe 50ms value
+ 	bool ice_lite;
+ 	ice_candidate_t candidates[ICE_MAX_CANDIDATES_COUNT];
+ 	int candidates_count;
