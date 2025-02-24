@@ -1,6 +1,11 @@
 {
     "default":
     {
+        "datachannel":
+        {
+            "baseline": "0.21.2",
+            "port-version": 0
+        },
         "dear-imgui":
         {
             "baseline": "1.91.8",
