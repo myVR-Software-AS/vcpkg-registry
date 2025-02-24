@@ -1,0 +1,13 @@
+diff --git a/imgui.h b/imgui.h
+index 21603e4c6..73d99489f 100644
+--- a/imgui.h
++++ b/imgui.h
+@@ -268,7 +268,7 @@ typedef ImU64 ImTextureID;          // Default: store a pointer or an integer fi
+ // - To use 16-bit indices + allow large meshes: backend need to set 'io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset' and handle ImDrawCmd::VtxOffset (recommended).
+ // - To use 32-bit indices: override with '#define ImDrawIdx unsigned int' in your imconfig.h file.
+ #ifndef ImDrawIdx
+-typedef unsigned short ImDrawIdx;   // Default: 16-bit (for maximum compatibility with renderer backends)
++typedef unsigned int ImDrawIdx;   // Default: 32-bit
+ #endif
+ 
+ // Character types

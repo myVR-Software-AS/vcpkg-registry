@@ -1,0 +1,89 @@
+diff --git a/imgui.cpp b/imgui.cpp
+index 03674e32f..ce5e5c891 100644
+--- a/imgui.cpp
++++ b/imgui.cpp
+@@ -5331,6 +5331,8 @@ void ImGui::NewFrame()
+     // Load settings on first frame, save settings when modified (after a delay)
+     UpdateSettings();
+ 
++    g.IO.WantRender = false;
++
+     g.Time += g.IO.DeltaTime;
+     g.WithinFrameScope = true;
+     g.FrameCount += 1;
+@@ -5385,6 +5387,8 @@ void ImGui::NewFrame()
+         g.HoveredIdTimer += g.IO.DeltaTime;
+     if (g.HoveredId && g.ActiveId != g.HoveredId)
+         g.HoveredIdNotActiveTimer += g.IO.DeltaTime;
++    if (g.HoveredId != g.HoveredIdPreviousFrame)
++        g.IO.WantRender = true;
+     g.HoveredIdPreviousFrame = g.HoveredId;
+     g.HoveredIdPreviousFrameItemCount = 0;
+     g.HoveredId = 0;
+@@ -5402,7 +5406,10 @@ void ImGui::NewFrame()
+ 
+     // Update ActiveId data (clear reference to active widget if the widget isn't alive anymore)
+     if (g.ActiveId)
++    {
+         g.ActiveIdTimer += g.IO.DeltaTime;
++        g.IO.WantRender = true;
++    }
+     g.LastActiveIdTimer += g.IO.DeltaTime;
+     g.ActiveIdPreviousFrame = g.ActiveId;
+     g.ActiveIdIsAlive = 0;
+@@ -5505,7 +5512,11 @@ void ImGui::NewFrame()
+ 
+     // Background darkening/whitening
+     if (GetTopMostPopupModal() != NULL || (g.NavWindowingTarget != NULL && g.NavWindowingHighlightAlpha > 0.0f))
++    {
+         g.DimBgRatio = ImMin(g.DimBgRatio + g.IO.DeltaTime * 6.0f, 1.0f);
++        if (g.DimBgRatio != 1.0)
++            g.IO.WantRender = true;
++    }
+     else
+         g.DimBgRatio = ImMax(g.DimBgRatio - g.IO.DeltaTime * 10.0f, 0.0f);
+ 
+@@ -10262,6 +10273,8 @@ void ImGui::UpdateMouseWheel()
+     if (!mouse_window || mouse_window->Collapsed)
+         return;
+ 
++    g.IO.WantRender = true;
++
+     // Zoom / Scale window
+     // FIXME-OBSOLETE: This is an old feature, it still works but pretty much nobody is using it and may be best redesigned.
+     if (wheel.y != 0.0f && g.IO.KeyCtrl && g.IO.FontAllowUserScaling)
+@@ -12897,6 +12910,8 @@ void ImGui::FocusWindow(ImGuiWindow* window, ImGuiFocusRequestFlags flags)
+     BringWindowToFocusFront(focus_front_window);
+     if (((window->Flags | focus_front_window->Flags | display_front_window->Flags) & ImGuiWindowFlags_NoBringToFrontOnFocus) == 0)
+         BringWindowToDisplayFront(display_front_window);
++
++    g.IO.WantRender = true;
+ }
+ 
+ void ImGui::FocusTopMostWindowUnderOne(ImGuiWindow* under_this_window, ImGuiWindow* ignore_window, ImGuiViewport* filter_viewport, ImGuiFocusRequestFlags flags)
+diff --git a/imgui.h b/imgui.h
+index 21603e4c6..a86874428 100644
+--- a/imgui.h
++++ b/imgui.h
+@@ -2462,6 +2462,8 @@ struct ImGuiIO
+     //  generally easier and more correct to use their state BEFORE calling NewFrame(). See FAQ for details!)
+     //------------------------------------------------------------------
+ 
++    bool        WantRender;                         // When io.WantRender is true imgui is processing animation or other state changes which will require a redraw.
++
+     bool        WantCaptureMouse;                   // Set when Dear ImGui will use mouse inputs, in this case do not dispatch them to your main game/application (either way, always pass on mouse inputs to imgui). (e.g. unclicked mouse is hovering over an imgui window, widget is active, mouse was clicked over an imgui window, etc.).
+     bool        WantCaptureKeyboard;                // Set when Dear ImGui will use keyboard inputs, in this case do not dispatch them to your main game/application (either way, always pass keyboard inputs to imgui). (e.g. InputText active, or an imgui window is focused and navigation is enabled, etc.).
+     bool        WantTextInput;                      // Mobile/console: when set, you may display an on-screen keyboard. This is set by Dear ImGui when it wants textual keyboard input to happen (e.g. when a InputText widget is active).
+diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
+index 8f3f53bfb..824842a22 100644
+--- a/imgui_widgets.cpp
++++ b/imgui_widgets.cpp
+@@ -6712,6 +6712,8 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
+ 
+         if (toggled)
+         {
++            g.IO.WantRender = true;
++
+             is_open = !is_open;
+             window->DC.StateStorage->SetInt(storage_id, is_open);
+             g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_ToggledOpen;
