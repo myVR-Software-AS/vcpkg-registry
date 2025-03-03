@@ -28,7 +28,7 @@
         },
         "myvr-vcpkg-cmake":
         {
-            "baseline": "2025-02-21",
+            "baseline": "2025-02-28",
             "port-version": 0
         },
         "openssl":
