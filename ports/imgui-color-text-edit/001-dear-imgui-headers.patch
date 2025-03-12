@@ -1,0 +1,26 @@
+diff --git a/TextEditor.cpp b/TextEditor.cpp
+index 02966f0..35c7038 100644
+--- a/TextEditor.cpp
++++ b/TextEditor.cpp
+@@ -7,7 +7,7 @@
+ #include "TextEditor.h"
+ 
+ #define IMGUI_DEFINE_MATH_OPERATORS
+-#include "imgui.h" // for imGui::GetCurrentWindow()
++#include <imgui/imgui.h> // for imGui::GetCurrentWindow()
+ 
+ // TODO
+ // - multiline comments vs single-line: latter is blocking start of a ML
+diff --git a/TextEditor.h b/TextEditor.h
+index bd52e13..40126f1 100644
+--- a/TextEditor.h
++++ b/TextEditor.h
+@@ -8,7 +8,7 @@
+ #include <unordered_map>
+ #include <map>
+ #include <regex>
+-#include "imgui.h"
++#include <imgui/imgui.h>
+ 
+ class TextEditor
+ {

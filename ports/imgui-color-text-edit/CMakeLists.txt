@@ -1,0 +1,43 @@
+cmake_minimum_required(VERSION 3.22)
+
+project("ImGuiColorTextEdit"
+    VERSION 2019.6.15
+)
+
+add_library(${PROJECT_NAME})
+
+set(sources
+    TextEditor.cpp
+)
+set(public_headers
+    TextEditor.h
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${sources}
+        #${public_headers}
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        # where the library itself will look for its internal headers
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC
+        # where top-level project will look for the library's public headers
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        # where external projects will look for the library's public headers
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${public_headers}")
+
+find_package(DearImGui CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        DearImGui::DearImGui
+)
+
+#set(PROJECT_INCLUDES_NAME_FOR_PACKAGE "imgui-color-text-edit")
+set(PROJECT_NAMESPACE_FOR_PACKAGE "DearImGui")
+include("${CMAKE_CURRENT_SOURCE_DIR}/Installing.cmake")

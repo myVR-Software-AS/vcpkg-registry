@@ -1,0 +1,23 @@
+{
+    "name": "imgui-color-text-edit",
+    "version": "2019.6.15",
+    "description": "Colorizing text editor for Dear ImGui",
+    "homepage": "https://github.com/BalazsJako/ImGuiColorTextEdit",
+    "license": "MIT",
+    "dependencies":
+    [
+        {
+            "name": "vcpkg-cmake",
+            "host": true
+        },
+        {
+            "name": "vcpkg-cmake-config",
+            "host": true
+        },
+        {
+            "name": "myvr-vcpkg-cmake",
+            "host": true
+        },
+        "dear-imgui"
+    ]
+}

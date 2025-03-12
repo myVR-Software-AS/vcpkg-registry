@@ -21,6 +21,11 @@
             "baseline": "3.3.8",
             "port-version": 0
         },
+        "imgui-color-text-edit":
+        {
+            "baseline": "2019.6.15",
+            "port-version": 0
+        },
         "imgui-node-editor":
         {
             "baseline": "0.9.4",
